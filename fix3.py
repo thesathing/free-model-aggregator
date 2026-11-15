@@ -1,0 +1,6 @@
+from pathlib import Path
+p=Path('/home/ubuntu/free-model-aggregator-work/entry/main.ts'); s=p.read_text()
+s=s.replace("if(api==='anthropic'){system=textOf(b.system);src=Array.isArray(b.messages)?b.messages:[];}const contents=src.filter(isRecord).map", "if(api==='anthropic'){system=textOf(b.system);src=Array.isArray(b.messages)?b.messages:[];}else{src=Array.isArray(b.messages)?b.messages:[];const sm=src.find(x=>isRecord(x)&&x.role==='system');if(isRecord(sm))system=textOf(sm.content);}const contents=src.filter(isRecord).map")
+s=s.replace("if(api==='openai'&&isRecord(b.response_format)", "if(Array.isArray(b.tools))c.tools=[{functionDeclarations:b.tools.flatMap(x=>isRecord(x)&&isRecord(x.function)?[{name:x.function.name,description:x.function.description,parameters:x.function.parameters}]:[])}];if(api==='openai'&&isRecord(b.response_format)")
+s=s.replace("if(p==='anthropic'&&api==='anthropic'){res.writeHead", "if(p==='openai'&&api==='openai'){res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-cache'});if(r.body)for await(const c of r.body as any)res.write(Buffer.from(c));res.end();return;}\n  if(p==='anthropic'&&api==='anthropic'){res.writeHead")
+p.write_text(s)
