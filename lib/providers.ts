@@ -48,6 +48,8 @@ export interface ProviderDirectoryEntry {
   base: string;
   key_env: string;
   key: string;
+  /** Absolute URL to dial (from the env /instance route), when known; else ''. */
+  dial: string;
 }
 
 export interface ProviderDirectory {
@@ -224,7 +226,9 @@ function providerOf(v: unknown): ProviderDirectoryEntry | null {
   // absolute base instead may use base_path, base_url or base. Take the first non-empty, `path` first.
   const base =
     stringOf(v.path) !== '' ? stringOf(v.path) : stringOf(v.base_path) !== '' ? stringOf(v.base_path) : stringOf(v.base_url) !== '' ? stringOf(v.base_url) : stringOf(v.base);
-  return { id, name: stringOf(v.name) !== '' ? stringOf(v.name) : id, wire, auth, base, key_env: stringOf(v.key_env), key: stringOf(v.key) };
+  const abs = /^https?:\/\//i.test(base) ? base.replace(/\/+$/, '') : '';
+  const pathBase = abs !== '' ? (new URL(abs).pathname.replace(/\/+$/, '') || '/') : base;
+  return { id, name: stringOf(v.name) !== '' ? stringOf(v.name) : id, wire, auth, base: pathBase, key_env: stringOf(v.key_env), key: stringOf(v.key), dial: abs };
 }
 
 function ratingOf(v: unknown): RatingRow | null {
@@ -391,7 +395,7 @@ function modelsIn(wire: Wire, body: unknown): ProbedModel[] {
 
 /** Probe one provider's catalog route, in its own wire, tolerating every failure. */
 export async function probeProvider(envUrl: string, provider: ProviderDirectoryEntry, timeoutMs = 5000): Promise<Probe> {
-  const base = joinBase(envUrl, provider.base);
+  const base = provider.dial !== '' ? provider.dial : joinBase(envUrl, provider.base);
   const url = provider.wire === 'gemini' ? `${base}/v1beta/models` : `${base}/v1/models`;
   const headers: Record<string, string> = { accept: 'application/json', ...authHeaders(provider.auth, provider.key) };
   if (provider.wire === 'anthropic') headers['anthropic-version'] = '2023-06-01';
